@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build, Push Docker Image and Deploy to Kubernetes
 
 on:
   push:
@@ -27,3 +27,24 @@ jobs:
       with:
         push: true
         tags: nikita1996rao/hello-world:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v1
+      with:
+        version: 'latest'
+
+    - name: Deploy to Kubernetes
+      env:
+        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+      run: |
+        echo "${KUBE_CONFIG_DATA}" | base64 --decode > kubeconfig
+        kubectl --kubeconfig kubeconfig apply -f deployment.yaml
+        kubectl --kubeconfig kubeconfig apply -f service.yaml
